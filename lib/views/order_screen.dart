@@ -6,8 +6,7 @@ import 'package:sandwich_shop/models/sandwich.dart';
 import 'package:sandwich_shop/views/profile_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:sandwich_shop/views/settings_screen.dart';
-
-
+import 'package:sandwich_shop/views/common_widgets.dart';
 
 class OrderScreen extends StatefulWidget {
   final int maxQuantity;
@@ -118,13 +117,13 @@ class _OrderScreenState extends State<OrderScreen> {
   }
 
   void _navigateToSettings() {
-  Navigator.push(
-    context,
-    MaterialPageRoute<void>(
-      builder: (BuildContext context) => const SettingsScreen(),
-    ),
-  );
-}
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) => const SettingsScreen(),
+      ),
+    );
+  }
 
   List<DropdownMenuEntry<SandwichType>> _buildSandwichTypeEntries() {
     List<DropdownMenuEntry<SandwichType>> entries = [];
@@ -164,36 +163,7 @@ class _OrderScreenState extends State<OrderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: SizedBox(
-            height: 100,
-            child: Image.asset('assets/images/logo.png'),
-          ),
-        ),
-        title: Text(
-          'Sandwich Counter',
-          style: heading1,
-        ),
-        actions: [
-          Consumer<Cart>(
-            builder: (context, cart, child) {
-              return Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.shopping_cart),
-                    const SizedBox(width: 4),
-                    Text('${cart.countOfItems}'),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
-      ),
+      appBar: const CommonAppBar(title: 'Sandwich Counter'),
       body: Center(
         child: SingleChildScrollView(
           child: Column(
