@@ -53,67 +53,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(
-      leading: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: SizedBox(
-          height: 100,
-          child: Image.asset('assets/images/logo.png'),
-        ),
-      ),
-      title: const Text(
-        'Profile',
-        style: heading1,
-      ),
-      actions: [
-        Consumer<Cart>(
-          builder: (context, cart, child) {
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.shopping_cart),
-                  const SizedBox(width: 4),
-                  Text('${cart.countOfItems}'),
-                ],
-              ),
-            );
-          },
-        ),
-      ],
-    ),
-    body: Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text('Enter your details:', style: heading2),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Your Name',
-              border: OutlineInputBorder(),
-            ),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SizedBox(
+            height: 100,
+            child: Image.asset('assets/images/logo.png'),
           ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _locationController,
-            decoration: const InputDecoration(
-              labelText: 'Preferred Location',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _saveProfile,
-            child: const Text('Save Profile'),
+        ),
+        title: const Text(
+          'Profile',
+          style: heading1,
+        ),
+        actions: [
+          Consumer<Cart>(
+            builder: (context, cart, child) {
+              return Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.shopping_cart),
+                    const SizedBox(width: 4),
+                    Text('${cart.countOfItems}'),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
-    ),
-  );
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Enter your details:', style: heading2),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: 'Your Name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _locationController,
+              decoration: const InputDecoration(
+                labelText: 'Preferred Location',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _saveProfile,
+              child: const Text('Save Profile'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

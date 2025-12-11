@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:sandwich_shop/views/app_styles.dart';
 import 'package:sandwich_shop/views/order_screen.dart';
 import 'package:sandwich_shop/models/cart.dart';
@@ -7,20 +6,21 @@ import 'package:sandwich_shop/models/sandwich.dart';
 import 'package:sandwich_shop/repositories/pricing_repository.dart';
 import 'package:sandwich_shop/views/checkout_screen.dart';
 
+// Change CartScreen to a StatefulWidget so we can use mounted and BuildContext safely.
+// Make cart optional to avoid compile errors at call sites that don't supply it.
 class CartScreen extends StatefulWidget {
-  const CartScreen({super.key});
+  final Cart cart;
+  const CartScreen({Key? key, Cart? cart})
+      : cart = cart ?? const Cart(),
+        super(key: key);
 
   @override
-  State<CartScreen> createState() {
-    return _CartScreenState();
-  }
+  State<CartScreen> createState() => _CartScreenState();
 }
 
 class _CartScreenState extends State<CartScreen> {
-  Future<void> _navigateToCheckout() async {
-    final Cart cart = Provider.of<Cart>(context, listen: false);
-
-    if (cart.items.isEmpty) {
+  Future<void> _navigateToCheckout(BuildContext context) async {
+    if (widget.cart.items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Your cart is empty'),
@@ -37,8 +37,10 @@ class _CartScreenState extends State<CartScreen> {
       ),
     );
 
-    if (result != null && mounted) {
-      cart.clear();
+    if (!mounted) return;
+
+    if (result != null) {
+      widget.cart.clear();
 
       final String orderId = result['orderId'] as String;
       final String estimatedTime = result['estimatedTime'] as String;
@@ -72,19 +74,17 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  void _incrementQuantity(Sandwich sandwich) {
-    final Cart cart = Provider.of<Cart>(context, listen: false);
-    cart.add(sandwich, quantity: 1);
+  void _incrementQuantity(BuildContext context, Sandwich sandwich) {
+    widget.cart.add(sandwich, quantity: 1);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Quantity increased')),
     );
   }
 
-  void _decrementQuantity(Sandwich sandwich) {
-    final Cart cart = Provider.of<Cart>(context, listen: false);
-    final wasPresent = cart.items.containsKey(sandwich);
-    cart.remove(sandwich, quantity: 1);
-    if (!cart.items.containsKey(sandwich) && wasPresent) {
+  void _decrementQuantity(BuildContext context, Sandwich sandwich) {
+    final wasPresent = widget.cart.items.containsKey(sandwich);
+    widget.cart.remove(sandwich, quantity: 1);
+    if (!widget.cart.items.containsKey(sandwich) && wasPresent) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Item removed from cart')),
       );
@@ -95,9 +95,8 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
-  void _removeItem(Sandwich sandwich) {
-    final Cart cart = Provider.of<Cart>(context, listen: false);
-    cart.remove(sandwich, quantity: cart.getQuantity(sandwich));
+  void _removeItem(BuildContext context, Sandwich sandwich) {
+    widget.cart.remove(sandwich, quantity: widget.cart.getQuantity(sandwich));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Item removed from cart')),
     );
@@ -119,8 +118,10 @@ class _CartScreenState extends State<CartScreen> {
           style: heading1,
         ),
         actions: [
-          Consumer<Cart>(
-            builder: (context, cart, child) {
+          // AnimatedBuilder listens to the Cart (ChangeNotifier) so the count updates
+          AnimatedBuilder(
+            animation: widget.cart,
+            builder: (context, _) {
               return Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Row(
@@ -128,7 +129,7 @@ class _CartScreenState extends State<CartScreen> {
                   children: [
                     const Icon(Icons.shopping_cart),
                     const SizedBox(width: 4),
-                    Text('${cart.countOfItems}'),
+                    Text('${widget.cart.countOfItems}'),
                   ],
                 ),
               );
@@ -138,8 +139,10 @@ class _CartScreenState extends State<CartScreen> {
       ),
       body: Center(
         child: SingleChildScrollView(
-          child: Consumer<Cart>(
-            builder: (context, cart, child) {
+          child: AnimatedBuilder(
+            animation: widget.cart,
+            builder: (context, _) {
+              final cart = widget.cart;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -164,7 +167,8 @@ class _CartScreenState extends State<CartScreen> {
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.remove),
-                                onPressed: () => _decrementQuantity(entry.key),
+                                onPressed: () =>
+                                    _decrementQuantity(context, entry.key),
                               ),
                               Text(
                                 'Qty: ${entry.value}',
@@ -172,7 +176,8 @@ class _CartScreenState extends State<CartScreen> {
                               ),
                               IconButton(
                                 icon: const Icon(Icons.add),
-                                onPressed: () => _incrementQuantity(entry.key),
+                                onPressed: () =>
+                                    _incrementQuantity(context, entry.key),
                               ),
                               const SizedBox(width: 16),
                               Text(
@@ -182,7 +187,7 @@ class _CartScreenState extends State<CartScreen> {
                               IconButton(
                                 icon: const Icon(Icons.delete),
                                 tooltip: 'Remove item',
-                                onPressed: () => _removeItem(entry.key),
+                                onPressed: () => _removeItem(context, entry.key),
                               ),
                             ],
                           ),
@@ -200,7 +205,7 @@ class _CartScreenState extends State<CartScreen> {
                       final bool cartHasItems = cart.items.isNotEmpty;
                       if (cartHasItems) {
                         return StyledButton(
-                          onPressed: _navigateToCheckout,
+                          onPressed: () => _navigateToCheckout(context),
                           icon: Icons.payment,
                           label: 'Checkout',
                           backgroundColor: Colors.orange,
