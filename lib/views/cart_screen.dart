@@ -10,8 +10,8 @@ import 'package:sandwich_shop/views/checkout_screen.dart';
 // Make cart optional to avoid compile errors at call sites that don't supply it.
 class CartScreen extends StatefulWidget {
   final Cart cart;
-  const CartScreen({Key? key, Cart? cart})
-      : cart = cart ?? const Cart(),
+  CartScreen({Key? key, Cart? cart})
+      : cart = cart ?? Cart(),
         super(key: key);
 
   @override
