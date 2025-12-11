@@ -1,10 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'sandwich.dart';
 import 'package:sandwich_shop/repositories/pricing_repository.dart';
 
-class Cart {
+class Cart extends ChangeNotifier {
   final Map<Sandwich, int> _items = {};
 
-  // Returns a read-only copy of the items and their quantities
   Map<Sandwich, int> get items => Map.unmodifiable(_items);
 
   void add(Sandwich sandwich, {int quantity = 1}) {
@@ -13,6 +13,7 @@ class Cart {
     } else {
       _items[sandwich] = quantity;
     }
+    notifyListeners();
   }
 
   void remove(Sandwich sandwich, {int quantity = 1}) {
@@ -23,11 +24,13 @@ class Cart {
       } else {
         _items.remove(sandwich);
       }
+      notifyListeners();
     }
   }
 
   void clear() {
     _items.clear();
+    notifyListeners();
   }
 
   double get totalPrice {
@@ -51,8 +54,8 @@ class Cart {
 
   int get countOfItems {
     int total = 0;
-    for (Sandwich sandwich in _items.keys) {
-      total += _items[sandwich]!;
+    for (int quantity in _items.values) {
+      total += quantity;
     }
     return total;
   }
