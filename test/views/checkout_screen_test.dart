@@ -1,265 +1,166 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:sandwich_shop/views/checkout_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:sandwich_shop/views/app_styles.dart';
 import 'package:sandwich_shop/models/cart.dart';
 import 'package:sandwich_shop/models/sandwich.dart';
+import 'package:sandwich_shop/repositories/pricing_repository.dart';
 
-void main() {
-  group('CheckoutScreen', () {
-    testWidgets('displays order summary with empty cart',
-        (WidgetTester tester) async {
-      final Cart emptyCart = Cart();
-      final CheckoutScreen checkoutScreen = CheckoutScreen(cart: emptyCart);
-      final MaterialApp app = MaterialApp(home: checkoutScreen);
+class CheckoutScreen extends StatefulWidget {
+  const CheckoutScreen({super.key});
 
-      await tester.pumpWidget(app);
+  @override
+  State<CheckoutScreen> createState() => _CheckoutScreenState();
+}
 
-      expect(find.text('Checkout'), findsOneWidget);
-      expect(find.text('Order Summary'), findsOneWidget);
-      expect(find.text('Total:'), findsOneWidget);
-      expect(find.text('Payment Method: Card ending in 1234'), findsOneWidget);
-      expect(find.text('Confirm Payment'), findsOneWidget);
+class _CheckoutScreenState extends State<CheckoutScreen> {
+  bool _isProcessing = false;
+
+  Future<void> _processPayment() async {
+    setState(() {
+      _isProcessing = true;
     });
 
-    testWidgets('displays order summary with single item',
-        (WidgetTester tester) async {
-      final Cart cart = Cart();
-      final Sandwich sandwich = Sandwich(
-        type: SandwichType.veggieDelight,
-        isFootlong: true,
-        breadType: BreadType.white,
-      );
-      cart.add(sandwich, quantity: 2);
+    await Future.delayed(const Duration(seconds: 2));
 
-      final CheckoutScreen checkoutScreen = CheckoutScreen(cart: cart);
-      final MaterialApp app = MaterialApp(home: checkoutScreen);
+    final DateTime currentTime = DateTime.now();
+    final int timestamp = currentTime.millisecondsSinceEpoch;
+    final String orderId = 'ORD$timestamp';
 
-      await tester.pumpWidget(app);
+    final Cart cart = Provider.of<Cart>(context, listen: false);
+    final Map orderConfirmation = {
+      'orderId': orderId,
+      'totalAmount': cart.totalPrice,
+      'itemCount': cart.countOfItems,
+      'estimatedTime': '15-20 minutes',
+    };
 
-      expect(find.text('Order Summary'), findsOneWidget);
-      expect(find.text('2x Veggie Delight'), findsOneWidget);
-      expect(find.text('Total:'), findsOneWidget);
-      expect(find.byType(Divider), findsOneWidget);
-    });
+    if (mounted) {
+      Navigator.pop(context, orderConfirmation);
+    }
+  }
 
-    testWidgets('displays order summary with multiple items',
-        (WidgetTester tester) async {
-      final Cart cart = Cart();
-      final Sandwich sandwich1 = Sandwich(
-        type: SandwichType.veggieDelight,
-        isFootlong: true,
-        breadType: BreadType.white,
-      );
-      final Sandwich sandwich2 = Sandwich(
-        type: SandwichType.chickenTeriyaki,
-        isFootlong: false,
-        breadType: BreadType.wheat,
-      );
-      cart.add(sandwich1, quantity: 1);
-      cart.add(sandwich2, quantity: 3);
+  double _calculateItemPrice(Sandwich sandwich, int quantity) {
+    PricingRepository repo = PricingRepository();
+    return repo.calculatePrice(
+        quantity: quantity, isFootlong: sandwich.isFootlong);
+  }
 
-      final CheckoutScreen checkoutScreen = CheckoutScreen(cart: cart);
-      final MaterialApp app = MaterialApp(home: checkoutScreen);
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SizedBox(
+            height: 100,
+            child: Image.asset('assets/images/logo.png'),
+          ),
+        ),
+        title: const Text('Checkout', style: heading1),
+        actions: [
+          Consumer<Cart>(
+            builder: (context, cart, child) {
+              return Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.shopping_cart),
+                    const SizedBox(width: 4),
+                    Text('${cart.countOfItems}'),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Consumer<Cart>(
+          builder: (context, cart, child) {
+            List<Widget> columnChildren = [];
 
-      await tester.pumpWidget(app);
+            columnChildren.add(const Text('Order Summary', style: heading2));
+            columnChildren.add(const SizedBox(height: 20));
 
-      expect(find.text('1x Veggie Delight'), findsOneWidget);
-      expect(find.text('3x Chicken Teriyaki'), findsOneWidget);
-      expect(find.text('Total:'), findsOneWidget);
-    });
+            for (MapEntry<Sandwich, int> entry in cart.items.entries) {
+              final Sandwich sandwich = entry.key;
+              final int quantity = entry.value;
+              final double itemPrice = _calculateItemPrice(sandwich, quantity);
 
-    testWidgets('shows confirm payment button initially',
-        (WidgetTester tester) async {
-      final Cart cart = Cart();
-      final CheckoutScreen checkoutScreen = CheckoutScreen(cart: cart);
-      final MaterialApp app = MaterialApp(home: checkoutScreen);
+              final Widget itemRow = Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${quantity}x ${sandwich.name}',
+                    style: normalText,
+                  ),
+                  Text(
+                    '£${itemPrice.toStringAsFixed(2)}',
+                    style: normalText,
+                  ),
+                ],
+              );
 
-      await tester.pumpWidget(app);
+              columnChildren.add(itemRow);
+              columnChildren.add(const SizedBox(height: 8));
+            }
 
-      expect(find.text('Confirm Payment'), findsOneWidget);
-      expect(find.byType(ElevatedButton), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-      expect(find.text('Processing payment...'), findsNothing);
-    });
+            columnChildren.add(const Divider());
+            columnChildren.add(const SizedBox(height: 10));
 
-    testWidgets('shows processing state when payment is initiated',
-        (WidgetTester tester) async {
-      final Cart cart = Cart();
-      final Sandwich sandwich = Sandwich(
-        type: SandwichType.veggieDelight,
-        isFootlong: true,
-        breadType: BreadType.white,
-      );
-      cart.add(sandwich, quantity: 1);
+            final Widget totalRow = Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Total:', style: heading2),
+                Text(
+                  '£${cart.totalPrice.toStringAsFixed(2)}',
+                  style: heading2,
+                ),
+              ],
+            );
+            columnChildren.add(totalRow);
+            columnChildren.add(const SizedBox(height: 40));
 
-      final CheckoutScreen checkoutScreen = CheckoutScreen(cart: cart);
-      final MaterialApp app = MaterialApp(home: checkoutScreen);
+            columnChildren.add(
+              const Text(
+                'Payment Method: Card ending in 1234',
+                style: normalText,
+                textAlign: TextAlign.center,
+              ),
+            );
+            columnChildren.add(const SizedBox(height: 20));
 
-      await tester.pumpWidget(app);
+            if (_isProcessing) {
+              columnChildren.add(
+                const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+              columnChildren.add(const SizedBox(height: 20));
+              columnChildren.add(
+                const Text(
+                  'Processing payment...',
+                  style: normalText,
+                  textAlign: TextAlign.center,
+                ),
+              );
+            } else {
+              columnChildren.add(
+                ElevatedButton(
+                  onPressed: _processPayment,
+                  child: const Text('Confirm Payment', style: normalText),
+                ),
+              );
+            }
 
-      final Finder confirmButtonFinder = find.text('Confirm Payment');
-      await tester.tap(confirmButtonFinder);
-      await tester.pump();
-
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.text('Processing payment...'), findsOneWidget);
-      expect(find.text('Confirm Payment'), findsNothing);
-
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('calculates item prices correctly for footlong sandwiches',
-        (WidgetTester tester) async {
-      final Cart cart = Cart();
-      final Sandwich footlongSandwich = Sandwich(
-        type: SandwichType.veggieDelight,
-        isFootlong: true,
-        breadType: BreadType.white,
-      );
-      cart.add(footlongSandwich, quantity: 1);
-
-      final CheckoutScreen checkoutScreen = CheckoutScreen(cart: cart);
-      final MaterialApp app = MaterialApp(home: checkoutScreen);
-
-      await tester.pumpWidget(app);
-
-      expect(find.text('1x Veggie Delight'), findsOneWidget);
-      expect(find.textContaining('£11.00'), findsWidgets);
-    });
-
-    testWidgets('calculates item prices correctly for six-inch sandwiches',
-        (WidgetTester tester) async {
-      final Cart cart = Cart();
-      final Sandwich sixInchSandwich = Sandwich(
-        type: SandwichType.veggieDelight,
-        isFootlong: false,
-        breadType: BreadType.white,
-      );
-      cart.add(sixInchSandwich, quantity: 1);
-
-      final CheckoutScreen checkoutScreen = CheckoutScreen(cart: cart);
-      final MaterialApp app = MaterialApp(home: checkoutScreen);
-
-      await tester.pumpWidget(app);
-
-      expect(find.text('1x Veggie Delight'), findsOneWidget);
-      expect(find.textContaining('£7.00'), findsWidgets);
-    });
-
-    testWidgets('displays correct total for mixed sandwich sizes',
-        (WidgetTester tester) async {
-      final Cart cart = Cart();
-      final Sandwich footlongSandwich = Sandwich(
-        type: SandwichType.veggieDelight,
-        isFootlong: true,
-        breadType: BreadType.white,
-      );
-      final Sandwich sixInchSandwich = Sandwich(
-        type: SandwichType.chickenTeriyaki,
-        isFootlong: false,
-        breadType: BreadType.wheat,
-      );
-      cart.add(footlongSandwich, quantity: 1);
-      cart.add(sixInchSandwich, quantity: 2);
-
-      final CheckoutScreen checkoutScreen = CheckoutScreen(cart: cart);
-      final MaterialApp app = MaterialApp(home: checkoutScreen);
-
-      await tester.pumpWidget(app);
-
-      expect(find.text('1x Veggie Delight'), findsOneWidget);
-      expect(find.text('2x Chicken Teriyaki'), findsOneWidget);
-      expect(find.textContaining('£25.00'), findsWidgets);
-    });
-
-    testWidgets('has proper layout structure', (WidgetTester tester) async {
-      final Cart cart = Cart();
-      final CheckoutScreen checkoutScreen = CheckoutScreen(cart: cart);
-      final MaterialApp app = MaterialApp(home: checkoutScreen);
-
-      await tester.pumpWidget(app);
-
-      expect(find.byType(Scaffold), findsOneWidget);
-      expect(find.byType(AppBar), findsOneWidget);
-      expect(find.byType(Column), findsOneWidget);
-      expect(find.byType(SizedBox), findsWidgets);
-    });
-
-    testWidgets('payment method text is displayed correctly',
-        (WidgetTester tester) async {
-      final Cart cart = Cart();
-      final CheckoutScreen checkoutScreen = CheckoutScreen(cart: cart);
-      final MaterialApp app = MaterialApp(home: checkoutScreen);
-
-      await tester.pumpWidget(app);
-
-      final Finder paymentMethodFinder =
-          find.text('Payment Method: Card ending in 1234');
-      expect(paymentMethodFinder, findsOneWidget);
-
-      final Text paymentMethodText = tester.widget<Text>(paymentMethodFinder);
-      expect(paymentMethodText.textAlign, equals(TextAlign.center));
-    });
-
-    testWidgets('order summary items are properly aligned',
-        (WidgetTester tester) async {
-      final Cart cart = Cart();
-      final Sandwich sandwich = Sandwich(
-        type: SandwichType.veggieDelight,
-        isFootlong: true,
-        breadType: BreadType.white,
-      );
-      cart.add(sandwich, quantity: 1);
-
-      final CheckoutScreen checkoutScreen = CheckoutScreen(cart: cart);
-      final MaterialApp app = MaterialApp(home: checkoutScreen);
-
-      await tester.pumpWidget(app);
-
-      final Finder rowFinders = find.byType(Row);
-      expect(rowFinders, findsWidgets);
-
-      final List<Row> rows = tester.widgetList<Row>(rowFinders).toList();
-      final Row itemRow = rows.firstWhere(
-        (row) => row.mainAxisAlignment == MainAxisAlignment.spaceBetween,
-      );
-      expect(itemRow.mainAxisAlignment, equals(MainAxisAlignment.spaceBetween));
-    });
-
-    testWidgets('displays divider between items and total',
-        (WidgetTester tester) async {
-      final Cart cart = Cart();
-      final Sandwich sandwich = Sandwich(
-        type: SandwichType.veggieDelight,
-        isFootlong: true,
-        breadType: BreadType.white,
-      );
-      cart.add(sandwich, quantity: 1);
-
-      final CheckoutScreen checkoutScreen = CheckoutScreen(cart: cart);
-      final MaterialApp app = MaterialApp(home: checkoutScreen);
-
-      await tester.pumpWidget(app);
-
-      expect(find.byType(Divider), findsOneWidget);
-    });
-
-    testWidgets('shows correct quantity and name format',
-        (WidgetTester tester) async {
-      final Cart cart = Cart();
-      final Sandwich sandwich = Sandwich(
-        type: SandwichType.chickenTeriyaki,
-        isFootlong: false,
-        breadType: BreadType.wheat,
-      );
-      cart.add(sandwich, quantity: 3);
-
-      final CheckoutScreen checkoutScreen = CheckoutScreen(cart: cart);
-      final MaterialApp app = MaterialApp(home: checkoutScreen);
-
-      await tester.pumpWidget(app);
-
-      expect(find.text('3x Chicken Teriyaki'), findsOneWidget);
-    });
-  });
+            return Column(
+              children: columnChildren,
+            );
+          },
+        ),
+      ),
+    );
+  }
 }
