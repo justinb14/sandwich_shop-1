@@ -83,3 +83,9 @@ Added android studio emulator
 ## Update 2 
 
 Successfully run app_test within integration_test file 
+
+## Update 3 
+
+Successfully added firebase into project 
+
+## Update 4 run neccessary build commands for user.g.dart
