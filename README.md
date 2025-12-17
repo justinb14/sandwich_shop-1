@@ -88,4 +88,10 @@ Successfully run app_test within integration_test file
 
 Successfully added firebase into project 
 
-## Update 4 run neccessary build commands for user.g.dart
+## Update 4 
+
+Created user.g.dart and user.dart file 
+
+## Update 5 
+
+Successfully created release build '√ Built build\app\outputs\flutter-apk\app-release.apk (81.5MB)' 
