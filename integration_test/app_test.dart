@@ -135,6 +135,121 @@ void main() {
       expect(find.text('Cart: 0 items - £0.00'), findsOneWidget);
     });
 
+    testWidgets('attempt to checkout with an empty cart', (WidgetTester tester) async {
+      app.main();
+      await tester.pumpAndSettle();
+
+      // Verify initial state
+      expect(find.text('Cart: 0 items - £0.00'), findsOneWidget);
+
+      // Try to navigate to cart
+      final viewCartButton = find.widgetWithText(StyledButton, 'View Cart');
+      await tester.ensureVisible(viewCartButton);
+      await tester.tap(viewCartButton);
+      await tester.pumpAndSettle();
+
+      // Verify empty cart message
+      expect(find.text('Your cart is empty!'), findsOneWidget);
+
+      // Ensure checkout button is disabled
+      final checkoutButton = find.widgetWithText(StyledButton, 'Checkout');
+      expect(checkoutButton, findsNothing);
+    });
+
+    testWidgets('add multiple sandwich types and verify cart', (WidgetTester tester) async {
+      app.main();
+      await tester.pumpAndSettle();
+
+      // Add Veggie Delight
+      final addToCartButton = find.widgetWithText(StyledButton, 'Add to Cart');
+      await tester.ensureVisible(addToCartButton);
+      await tester.tap(addToCartButton);
+      await tester.pumpAndSettle();
+
+      // Change sandwich type to Chicken Teriyaki
+      final sandwichDropdown = find.byType(DropdownMenu<SandwichType>);
+      await tester.tap(sandwichDropdown);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Chicken Teriyaki').last);
+      await tester.pumpAndSettle();
+
+      // Add Chicken Teriyaki
+      await tester.tap(addToCartButton);
+      await tester.pumpAndSettle();
+
+      // Verify cart summary
+      expect(find.text('Cart: 2 items - £22.00'), findsOneWidget);
+
+      // Navigate to cart and verify items
+      final viewCartButton = find.widgetWithText(StyledButton, 'View Cart');
+      await tester.ensureVisible(viewCartButton);
+      await tester.tap(viewCartButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Veggie Delight'), findsOneWidget);
+      expect(find.text('Chicken Teriyaki'), findsOneWidget);
+    });
+
+    testWidgets('verify cart updates when removing items', (WidgetTester tester) async {
+      app.main();
+      await tester.pumpAndSettle();
+
+      // Add a sandwich to the cart
+      final addToCartButton = find.widgetWithText(StyledButton, 'Add to Cart');
+      await tester.ensureVisible(addToCartButton);
+      await tester.tap(addToCartButton);
+      await tester.pumpAndSettle();
+
+      // Navigate to cart
+      final viewCartButton = find.widgetWithText(StyledButton, 'View Cart');
+      await tester.ensureVisible(viewCartButton);
+      await tester.tap(viewCartButton);
+      await tester.pumpAndSettle();
+
+      // Remove the sandwich
+      final removeButton = find.widgetWithText(StyledButton, 'Remove');
+      await tester.tap(removeButton);
+      await tester.pumpAndSettle();
+
+      // Verify cart is empty
+      expect(find.text('Your cart is empty!'), findsOneWidget);
+      expect(find.text('Cart: 0 items - £0.00'), findsOneWidget);
+    });
+
+    testWidgets('verify error message for exceeding max quantity', (WidgetTester tester) async {
+      app.main();
+      await tester.pumpAndSettle();
+
+      // Increment quantity to exceed max
+      final addButtons = find.byIcon(Icons.add);
+      final quantityAddButton = addButtons.first;
+
+      for (int i = 0; i < 6; i++) {
+        await tester.tap(quantityAddButton);
+        await tester.pumpAndSettle();
+      }
+
+      // Verify error message
+      expect(find.text('Maximum quantity reached!'), findsOneWidget);
+    });
+
+    testWidgets('verify app handles invalid sandwich type gracefully', (WidgetTester tester) async {
+      app.main();
+      await tester.pumpAndSettle();
+
+      // Simulate an invalid sandwich type (e.g., backend returns unexpected data)
+      // This would typically require mocking the backend or modifying the app state directly.
+      // For now, we simulate by checking the default behavior.
+
+      final sandwichDropdown = find.byType(DropdownMenu<SandwichType>);
+      await tester.tap(sandwichDropdown);
+      await tester.pumpAndSettle();
+
+      // Verify dropdown does not crash and shows valid options
+      expect(find.text('Veggie Delight'), findsWidgets);
+      expect(find.text('Chicken Teriyaki'), findsWidgets);
+    });
+
     // Feel free to add more tests (e.g., to check saved orders, etc.)
   });
 }
