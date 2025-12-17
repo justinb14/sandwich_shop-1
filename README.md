@@ -79,3 +79,7 @@ screenshots (you can open Discord in your web browser).
 ## Update 1 
 
 Added android studio emulator
+
+## Update 2 
+
+Successfully run app_test within integration_test file 
